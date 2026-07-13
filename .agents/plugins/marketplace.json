@@ -1,0 +1,20 @@
+{
+  "name": "screen-capture-marketplace",
+  "interface": {
+    "displayName": "Screen Capture Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "screen-capture",
+      "source": {
+        "source": "local",
+        "path": "./plugins/screen-capture"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
