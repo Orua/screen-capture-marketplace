@@ -43,13 +43,16 @@ public static class CodexComposerPaste
         [FieldOffset(0)] public MOUSEINPUT mouse;
     }
     [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public UNION data; }
+    [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     delegate bool EnumWindowCallback(IntPtr window, IntPtr data);
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowCallback callback, IntPtr data);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr window);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out RECT rect);
-    [DllImport("user32.dll")] static extern IntPtr SendMessageTimeout(IntPtr window, uint message, UIntPtr wParam, IntPtr lParam, uint flags, uint timeout, out UIntPtr result);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
+    [DllImport("user32.dll")] static extern bool GetPhysicalCursorPos(out POINT point);
+    [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr w, out uint pid);
     [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint thread, ref GUIINFO info);
     [DllImport("user32.dll")] static extern bool IsWindow(IntPtr w);
@@ -57,9 +60,6 @@ public static class CodexComposerPaste
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr w);
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr w);
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr w, int command);
-    [DllImport("user32.dll")] static extern bool AttachThreadInput(uint a, uint b, bool attach);
-    [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
-    [DllImport("user32.dll")] static extern IntPtr SetFocus(IntPtr w);
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll", SetLastError=true)] static extern uint SendInput(uint n, INPUT[] input, int size);
 
@@ -146,23 +146,17 @@ public static class CodexComposerPaste
 
     static bool Activate(IntPtr window)
     {
+        if (GetForegroundWindow()==window) return true;
         if (IsIconic(window)) ShowWindow(window,9);
-        uint unused;
-        uint current = GetCurrentThreadId();
-        uint foreground = GetWindowThreadProcessId(GetForegroundWindow(), out unused);
-        uint target = GetWindowThreadProcessId(window, out unused);
-        bool a = foreground != current && AttachThreadInput(current,foreground,true);
-        bool b = target != current && target != foreground && AttachThreadInput(current,target,true);
-        try { BringWindowToTop(window); SetForegroundWindow(window); }
-        finally { if (b) AttachThreadInput(current,target,false); if (a) AttachThreadInput(current,foreground,false); }
+        // The capture process grants us foreground permission at completion.
+        // Do not attach input queues: that resets key state and can disturb IME.
+        BringWindowToTop(window); SetForegroundWindow(window);
         for (int i=0;i<10 && GetForegroundWindow()!=window;i++) Thread.Sleep(40);
         return GetForegroundWindow()==window;
     }
 
     static AutomationElement FindComposer(IntPtr window)
     {
-        UIntPtr ignored;
-        SendMessageTimeout(window,0x003D,UIntPtr.Zero,new IntPtr(-25),2,200,out ignored);
         var root = AutomationElement.FromHandle(window);
         var inputs = root.FindAll(TreeScope.Descendants,new OrCondition(
             new PropertyCondition(AutomationElement.ControlTypeProperty,ControlType.Edit),
@@ -202,6 +196,52 @@ public static class CodexComposerPaste
         }};
     }
 
+    static INPUT MouseAt(int x, int y, uint flags)
+    {
+        int left=GetSystemMetrics(76), top=GetSystemMetrics(77);
+        int width=GetSystemMetrics(78), height=GetSystemMetrics(79);
+        return new INPUT { type=0, data=new UNION { mouse=new MOUSEINPUT {
+            dx=(int)Math.Round((x-left)*65535.0/Math.Max(1,width-1)),
+            dy=(int)Math.Round((y-top)*65535.0/Math.Max(1,height-1)),
+            flags=flags|0x8000u|0x4000u
+        }}};
+    }
+
+    static bool FocusComposerNaturally(AutomationElement composer, IntPtr window)
+    {
+        if (composer.Current.HasKeyboardFocus) return true;
+        if (GetForegroundWindow()!=window) return false;
+        if ((GetAsyncKeyState(1)&0x8000)!=0 || (GetAsyncKeyState(2)&0x8000)!=0) return false;
+        var bounds=composer.Current.BoundingRectangle;
+        var point = new System.Windows.Point(bounds.Left+Math.Min(16,bounds.Width/2),bounds.Top+Math.Min(16,bounds.Height/2));
+        // Use the real caret position when the accessibility provider supplies it.
+        object pattern;
+        if (composer.TryGetCurrentPattern(TextPattern.Pattern,out pattern)) {
+            var ranges=((TextPattern)pattern).GetSelection();
+            if(ranges.Length==1) {
+                System.Windows.Rect[] rectangles=ranges[0].GetBoundingRectangles();
+                if(rectangles.Length>0 && !rectangles[0].IsEmpty &&
+                   rectangles[0].Left>=bounds.Left && rectangles[0].Left<bounds.Right &&
+                   rectangles[0].Top>=bounds.Top && rectangles[0].Top<bounds.Bottom)
+                    point=new System.Windows.Point(rectangles[0].Left+Math.Min(2,rectangles[0].Width/2),rectangles[0].Top+rectangles[0].Height/2);
+            }
+        }
+        IntPtr previous=IntPtr.Zero;
+        try {
+            previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            POINT cursor; bool restore=GetPhysicalCursorPos(out cursor);
+            var click=new INPUT[] { MouseAt((int)point.X,(int)point.Y,1),MouseAt((int)point.X,(int)point.Y,2),MouseAt((int)point.X,(int)point.Y,4) };
+            uint sent=SendInput((uint)click.Length,click,Marshal.SizeOf(typeof(INPUT)));
+            if(sent!=click.Length) {
+                var release=new INPUT[] {MouseAt((int)point.X,(int)point.Y,4)};
+                SendInput(1,release,Marshal.SizeOf(typeof(INPUT))); return false;
+            }
+            Thread.Sleep(80);
+            if(restore) { var move=new INPUT[] {MouseAt(cursor.X,cursor.Y,1)}; SendInput(1,move,Marshal.SizeOf(typeof(INPUT))); }
+        } finally { if(previous!=IntPtr.Zero) SetThreadDpiAwarenessContext(previous); }
+        return GetForegroundWindow()==window && composer.Current.HasKeyboardFocus;
+    }
+
     public static string Paste(CodexPasteTarget target)
     {
         var remembered = target;
@@ -219,12 +259,11 @@ public static class CodexComposerPaste
         if (target.Composer != null) {
             try {
                 if (!BelongsTo(target.Composer, target.Window)) return "composer-changed";
-                target.Composer.SetFocus();
-                focusedComposer = true;
+                focusedComposer = FocusComposerNaturally(target.Composer,target.Window);
             } catch { target.Composer=null; }
         }
-        // Electron can keep its DOM focus while exposing only a native renderer HWND.
-        // In that case restore exactly the focus remembered before the capture overlay.
+        // Preserve an already restored native focus only. Never force a foreign
+        // HWND's focus or change its input queue / IME context as a fallback.
         if (!focusedComposer) {
             if (remembered == null || remembered.Window != target.Window || remembered.ProcessId != target.ProcessId)
                 return "no-composer-found";
@@ -233,10 +272,6 @@ public static class CodexComposerPaste
                 (target.Focus != target.Window && !IsChild(target.Window, target.Focus)))
                 return "input-focus-unavailable";
             uint thread = GetWindowThreadProcessId(target.Window, out pid);
-            uint ours = GetCurrentThreadId();
-            bool attached = AttachThreadInput(ours, thread, true);
-            try { SetFocus(target.Focus); }
-            finally { if (attached) AttachThreadInput(ours, thread, false); }
             var info = new GUIINFO { cbSize = Marshal.SizeOf(typeof(GUIINFO)) };
             if (!GetGUIThreadInfo(thread, ref info) || info.focus != target.Focus)
                 return "input-focus-not-restored";

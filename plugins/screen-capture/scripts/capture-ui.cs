@@ -131,7 +131,7 @@ internal sealed class CaptureOverlay : Form
 {
     readonly Bitmap desktop; readonly string output; readonly uint parentProcess;
     readonly List<Mark> marks = new List<Mark>(); readonly ToolTip tips = new ToolTip();
-    Rectangle selection; Point start; Mark pending; bool selecting; string tool = "move";
+    Rectangle selection; Point start; Mark pending; bool selecting, confirmOnRelease; string tool = "move";
     CaptureToolbar toolbar; TextBox textBox;
     static readonly Color Green = Color.FromArgb(7, 193, 96);
     readonly Font uiFont = new Font("Microsoft YaHei UI", 10);
@@ -198,7 +198,11 @@ internal sealed class CaptureOverlay : Form
         if (e.Button == MouseButtons.Right) { CancelCapture(); return; }
         if (e.Button != MouseButtons.Left) return;
         CommitText(); start = e.Location;
-        if (selection.IsEmpty || tool == "move") {
+        if (!selection.IsEmpty && (tool == "move" || !selection.Contains(e.Location))) {
+            // Finish on mouse-up so the confirmation click cannot reach Codex.
+            confirmOnRelease = true; Capture = true; return;
+        }
+        if (selection.IsEmpty) {
             selecting = true; selection = new Rectangle(e.X,e.Y,0,0); marks.Clear();
             if (toolbar != null) toolbar.Hide();
         } else if (selection.Contains(e.Location)) {
@@ -217,6 +221,9 @@ internal sealed class CaptureOverlay : Form
     protected override void OnMouseUp(MouseEventArgs e)
     {
         base.OnMouseUp(e); Capture = false;
+        if (confirmOnRelease && e.Button == MouseButtons.Left) {
+            confirmOnRelease=false; Complete(); return;
+        }
         if (selecting) { selecting = false; if (selection.Width > 3 && selection.Height > 3) ShowToolbar(); else selection = Rectangle.Empty; }
         if (pending != null) { marks.Add(pending); pending=null; Invalidate(selection); }
     }
