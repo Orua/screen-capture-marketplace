@@ -157,7 +157,7 @@ async function handle(message) {
     return {
       protocolVersion: message.params?.protocolVersion || "2025-06-18",
       capabilities: { tools: {} },
-      serverInfo: { name: "screen-capture", version: "0.2.0" }
+      serverInfo: { name: "screen-capture", version: "0.2.1" }
     };
   }
 

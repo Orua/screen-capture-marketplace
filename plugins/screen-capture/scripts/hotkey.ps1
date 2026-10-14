@@ -132,21 +132,15 @@ function Invoke-RegionCapture {
         $clipboardImage.Dispose()
     }
 
-    $notifyIcon.BalloonTipTitle = "Codex Screen Capture"
     $pasteStatus = [CodexComposerPaste]::Paste($target)
     [IO.File]::WriteAllText((Join-Path $outputDirectory "last-result.json"),
         (@{ capturedAt = [DateTime]::UtcNow.ToString('o'); pasteStatus = $pasteStatus; sent = $false } | ConvertTo-Json))
-    $notifyIcon.BalloonTipText = if ($pasteStatus -eq "paste-requested") {
-        "图片已粘贴到 Codex 草稿，未发送。"
-    } else {
-        "图片已复制。请点击 Codex 输入框按 Ctrl+V（自动插入未完成）。"
+    if ($pasteStatus -ne "paste-requested") {
+        [CaptureUi]::ShowNotice("未能定位或插入 Codex 输入框。图片已保存在剪贴板，可按 Ctrl+V 粘贴。")
     }
-    $notifyIcon.ShowBalloonTip(2500)
     }
     catch {
-        $notifyIcon.BalloonTipTitle = "Codex 截图"
-        $notifyIcon.BalloonTipText = "截图未完成，请重试。"
-        $notifyIcon.ShowBalloonTip(2500)
+        [CaptureUi]::ShowNotice("截图未完成，请重试。")
         [IO.File]::WriteAllText((Join-Path $outputDirectory "last-error.txt"), $_.Exception.Message)
     }
     finally { $script:captureBusy = $false }

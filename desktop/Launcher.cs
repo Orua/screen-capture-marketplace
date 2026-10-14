@@ -10,8 +10,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Capture, annotate and paste images into the current Codex draft without sending")]
 [assembly: AssemblyCompany("Orua; based on daftlamb/screen-capture-marketplace")]
 [assembly: AssemblyProduct("Codex Screen Capture")]
-[assembly: AssemblyVersion("0.2.0.0")]
-[assembly: AssemblyFileVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.2.1.0")]
+[assembly: AssemblyFileVersion("0.2.1.0")]
 
 internal static class Launcher
 {
@@ -19,7 +19,7 @@ internal static class Launcher
     static int Main(string[] args)
     {
         try {
-            string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexScreenCapture", "0.2.0");
+            string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexScreenCapture", "0.2.1");
             string scripts = Path.Combine(root, "scripts");
             string runtime = Path.Combine(root, "agent", "temp", "runtime");
             Directory.CreateDirectory(scripts);
@@ -41,7 +41,7 @@ internal static class Launcher
                 } finally { mutex.ReleaseMutex(); }
             }
             if (Array.IndexOf(args, "--self-test") >= 0) {
-                File.WriteAllText(Path.Combine(runtime,"launcher-validation.json"), "{\"version\":\"0.2.0\",\"embeddedFiles\":4,\"extractionVerified\":true}", new UTF8Encoding(false));
+                File.WriteAllText(Path.Combine(runtime,"launcher-validation.json"), "{\"version\":\"0.2.1\",\"embeddedFiles\":4,\"extractionVerified\":true}", new UTF8Encoding(false));
                 return 0;
             }
             string powershell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"WindowsPowerShell\v1.0\powershell.exe");

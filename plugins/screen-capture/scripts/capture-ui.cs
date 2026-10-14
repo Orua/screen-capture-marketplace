@@ -8,6 +8,13 @@ using System.Windows.Forms;
 
 public static class CaptureUi
 {
+    static ClipboardNotice notice;
+    public static void ShowNotice(string message)
+    {
+        if (notice != null && !notice.IsDisposed) notice.Close();
+        notice = new ClipboardNotice(message);
+        notice.Show();
+    }
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
     [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(uint processId);
     [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr icon);
@@ -80,6 +87,43 @@ public static class CaptureUi
             overlay.SelectForPreview(new Rectangle(220, 130, Math.Min(650, image.Width-260), Math.Min(380,image.Height-250)));
             overlay.DrawPreview(output);
         }
+    }
+}
+
+// Failure notices use a bounded timer instead of an OS balloon timeout, which
+// Windows may extend. This window never takes keyboard focus from another app.
+internal sealed class ClipboardNotice : Form
+{
+    readonly Timer timer = new Timer();
+    readonly Font noticeFont = new Font("Microsoft YaHei UI", 10);
+    readonly string message;
+    internal ClipboardNotice(string text)
+    {
+        message = text;
+        FormBorderStyle = FormBorderStyle.None;
+        ShowInTaskbar = false;
+        TopMost = true;
+        StartPosition = FormStartPosition.Manual;
+        DoubleBuffered = true;
+        ClientSize = new Size(360, 82);
+        var work = Screen.PrimaryScreen.WorkingArea;
+        Location = new Point(work.Right-Width-16,work.Bottom-Height-16);
+        using(var shape=CaptureUi.Rounded(new RectangleF(0,0,Width,Height),10)) Region=new Region(shape);
+        timer.Interval = 3200;
+        timer.Tick += delegate { timer.Stop(); Close(); };
+        Shown += delegate { timer.Start(); };
+    }
+    protected override bool ShowWithoutActivation { get { return true; } }
+    protected override CreateParams CreateParams { get { var p=base.CreateParams; p.ExStyle |= 0x08000000 | 0x00000080; return p; } }
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        e.Graphics.Clear(Color.FromArgb(247,250,248));
+        TextRenderer.DrawText(e.Graphics,message,noticeFont,new Rectangle(18,14,Width-36,Height-28),Color.FromArgb(39,58,48),TextFormatFlags.WordBreak|TextFormatFlags.VerticalCenter);
+    }
+    protected override void Dispose(bool disposing)
+    {
+        if(disposing) { timer.Dispose(); noticeFont.Dispose(); }
+        base.Dispose(disposing);
     }
 }
 
