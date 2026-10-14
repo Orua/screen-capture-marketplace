@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -8,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const captureScript = path.join(root, "capture.ps1");
 const hotkeyScript = path.join(root, "hotkey.ps1");
-const outputDirectory = path.join(os.tmpdir(), "codex-screen-capture");
+const outputDirectory = path.resolve(root, "../agent/temp/runtime");
 const latestScreenshot = path.join(outputDirectory, "last.png");
 
 const captureTool = {
@@ -158,7 +157,7 @@ async function handle(message) {
     return {
       protocolVersion: message.params?.protocolVersion || "2025-06-18",
       capabilities: { tools: {} },
-      serverInfo: { name: "screen-capture", version: "0.1.0" }
+      serverInfo: { name: "screen-capture", version: "0.2.0" }
     };
   }
 

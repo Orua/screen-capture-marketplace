@@ -3,3 +3,10 @@
 .DS_Store
 Thumbs.db
 node_modules/
+agent/
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.ico

@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "screen-capture": {
+      "args": [
+        "./scripts/server.mjs"
+      ],
       "command": "node",
-      "args": ["./scripts/server.mjs"],
       "cwd": "."
     }
   }
