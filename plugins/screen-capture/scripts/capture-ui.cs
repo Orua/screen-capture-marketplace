@@ -135,7 +135,7 @@ internal sealed class CaptureOverlay : Form
     CaptureToolbar toolbar; TextBox textBox;
     static readonly Color Green = Color.FromArgb(7, 193, 96);
     readonly Font uiFont = new Font("Microsoft YaHei UI", 10);
-    readonly Font markFont = new Font("Microsoft YaHei UI", 20, FontStyle.Bold);
+    readonly Font markFont = new Font("Microsoft YaHei UI", 16, FontStyle.Bold);
 
     internal CaptureOverlay(Bitmap frozen, Rectangle bounds, string destination, uint parent)
     {
