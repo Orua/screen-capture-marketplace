@@ -22,28 +22,56 @@ public static class CaptureUi
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out NativeRect rect);
     [StructLayout(LayoutKind.Sequential)] struct NativeRect { public int L, T, R, B; }
 
-    public static Icon TrayIcon()
+    // B design: original Codex cloud/terminal motif with blue capture corners.
+    // Draw from source at each icon size so the executable and tray stay consistent.
+    public static Bitmap IconBitmap(int size)
     {
-        using (var bitmap = new Bitmap(64, 64)) {
-            using (var g = Graphics.FromImage(bitmap)) {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var fill = new SolidBrush(Color.FromArgb(7, 151, 114)))
-                using (var shape = Rounded(new RectangleF(2, 2, 60, 60), 15)) g.FillPath(fill, shape);
-                using (var pen = new Pen(Color.White, 5)) {
-                    pen.StartCap = pen.EndCap = LineCap.Round;
-                    g.DrawLines(pen, new PointF[] { new PointF(16, 27), new PointF(16, 16), new PointF(27, 16) });
-                    g.DrawLines(pen, new PointF[] { new PointF(37, 16), new PointF(48, 16), new PointF(48, 27) });
-                    g.DrawLines(pen, new PointF[] { new PointF(48, 37), new PointF(48, 48), new PointF(37, 48) });
-                    g.DrawLines(pen, new PointF[] { new PointF(27, 48), new PointF(16, 48), new PointF(16, 37) });
-                    g.DrawLines(pen, new PointF[] { new PointF(25, 33), new PointF(30, 38), new PointF(40, 27) });
+        var bitmap = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(bitmap)) {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.ScaleTransform(size / 256f, size / 256f);
+            using (var cloud = new GraphicsPath()) {
+                cloud.StartFigure();
+                cloud.AddBezier(96, 69, 100, 45, 140, 40, 158, 61);
+                cloud.AddBezier(158, 61, 184, 52, 210, 73, 205, 98);
+                cloud.AddBezier(205, 98, 226, 114, 220, 142, 204, 153);
+                cloud.AddBezier(204, 153, 207, 180, 185, 200, 163, 193);
+                cloud.AddBezier(163, 193, 144, 213, 117, 206, 107, 190);
+                cloud.AddBezier(107, 190, 81, 201, 59, 180, 64, 158);
+                cloud.AddBezier(64, 158, 44, 145, 44, 122, 58, 109);
+                cloud.AddBezier(58, 109, 51, 86, 73, 64, 96, 69);
+                cloud.CloseFigure();
+                using (var fill = new LinearGradientBrush(new Rectangle(48, 45, 174, 163), Color.FromArgb(188, 158, 255), Color.FromArgb(46, 32, 255), 90f)) {
+                    var blend = new ColorBlend();
+                    blend.Colors = new Color[] { Color.FromArgb(188,158,255), Color.FromArgb(104,121,255), Color.FromArgb(46,32,255) };
+                    blend.Positions = new float[] { 0f, .5f, 1f };
+                    fill.InterpolationColors = blend; g.FillPath(fill, cloud);
                 }
             }
+            using (var pen = new Pen(Color.White, 11)) {
+                pen.StartCap = pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round;
+                g.DrawLines(pen, new PointF[] { new PointF(93,105), new PointF(109,128), new PointF(93,151) });
+                g.DrawLine(pen, 137, 153, 166, 153);
+            }
+            using (var pen = new Pen(Color.FromArgb(0, 104, 255), 17)) {
+                pen.StartCap = pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round;
+                g.DrawLines(pen, new PointF[] { new PointF(22,65), new PointF(22,22), new PointF(65,22) });
+                g.DrawLines(pen, new PointF[] { new PointF(191,22), new PointF(234,22), new PointF(234,65) });
+                g.DrawLines(pen, new PointF[] { new PointF(234,191), new PointF(234,234), new PointF(191,234) });
+                g.DrawLines(pen, new PointF[] { new PointF(65,234), new PointF(22,234), new PointF(22,191) });
+            }
+        }
+        return bitmap;
+    }
+
+    public static Icon TrayIcon()
+    {
+        using (var bitmap = IconBitmap(64)) {
             IntPtr handle = bitmap.GetHicon();
             try { return (Icon)Icon.FromHandle(handle).Clone(); }
             finally { DestroyIcon(handle); }
         }
     }
-
     internal static GraphicsPath Rounded(RectangleF r, float radius)
     {
         var path = new GraphicsPath(); float d = radius * 2;

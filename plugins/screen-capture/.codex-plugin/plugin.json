@@ -1,6 +1,6 @@
 {
   "name": "screen-capture",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Capture and annotate Windows screenshots, then paste the image into the remembered Codex draft without sending.",
   "author": {
     "name": "daftlamb"
@@ -10,7 +10,7 @@
   "interface": {
     "displayName": "Screen Capture",
     "shortDescription": "框选、标注，完成后插入 Codex 草稿。",
-    "longDescription": "Windows 本地截图插件。单击绿色托盘图标或按 Ctrl+Shift+2，冻结画面、框选并标注，点击选区外工具条的绿色勾号。重新查找当前 Codex 窗口及输入框，只粘贴图片，保留原有文字，不自动发送；找不到输入框时保留剪贴板供手动粘贴。",
+    "longDescription": "Windows 本地截图插件。单击蓝色 Codex 截图托盘图标或按 Ctrl+Shift+2，冻结画面、框选并标注，点击选区外工具条的绿色勾号。重新查找当前 Codex 窗口及输入框，只粘贴图片，保留原有文字，不自动发送；找不到输入框时保留剪贴板供手动粘贴。",
     "developerName": "Orua / original by daftlamb",
     "category": "Productivity",
     "capabilities": [

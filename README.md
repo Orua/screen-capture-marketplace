@@ -7,7 +7,7 @@ Windows 截图小工具：框选屏幕、简单标注，点击绿色勾号后将
 ## 相比原项目改进了什么
 
 - **独立 EXE**：内置所需脚本，双击即可启动；独立运行无需 Node.js，也无需先加载 Codex 插件。
-- **绿色托盘图标**：单击图标或按 `Ctrl+Shift+2` 开始截图；单实例机制防止重复常驻。
+- **Codex 截图图标**：单击图标或按 `Ctrl+Shift+2` 开始截图；单实例机制防止重复常驻。
 - **减少闪烁**：打开时冻结桌面画面，使用双缓冲绘制，并阻止快捷键重复触发和并发截图。
 - **微信式截图界面**：去掉标题栏，绿色选区边框与尺寸提示，小工具条优先放在选区外。
 - **简单标注**：矩形、圆形、箭头、画笔、文字、撤销；绿色勾号完成，红色叉号或 `Esc` 取消。
@@ -21,7 +21,7 @@ Windows 截图小工具：框选屏幕、简单标注，点击绿色勾号后将
 
 从 [Releases](https://github.com/Orua/screen-capture-marketplace/releases/latest) 下载 `CodexScreenCapture.exe`。
 
-1. 双击 EXE，右下角系统托盘会出现绿色截图图标。
+1. 双击 EXE，右下角系统托盘会出现蓝紫色 Codex 云形图标与蓝色截图框。
 2. 单击图标，或按 `Ctrl+Shift+2`。
 3. 拖动框选屏幕，选择工具进行标注。
 4. 框选后再单击左键即可确认；使用标注工具时，在选区内编辑，点击选区外或绿色勾号确认。
@@ -37,7 +37,7 @@ Windows 截图小工具：框选屏幕、简单标注，点击绿色勾号后将
 - 自动插入需要 Codex / ChatGPT Windows 桌面应用已打开，并有可编辑输入框。
 - 独立 EXE 不需要 Node.js；安装为 MCP 插件时需要 Node.js 在 `PATH` 中。
 
-EXE 内置四个运行文件，首次启动会将它们解包到 `%LOCALAPPDATA%\CodexScreenCapture\0.2.2\scripts\`。最新截图、进程编号和动作状态位于同一版本目录下的 `agent\temp\runtime\`。工具本身没有上传接口；图片插入聊天草稿后的附件处理由 Codex 负责。
+EXE 内置四个运行文件，首次启动会将它们解包到 `%LOCALAPPDATA%\CodexScreenCapture\0.2.3\scripts\`。最新截图、进程编号和动作状态位于同一版本目录下的 `agent\temp\runtime\`。工具本身没有上传接口；图片插入聊天草稿后的附件处理由 Codex 负责。
 
 ## 安装为 Codex 插件
 
